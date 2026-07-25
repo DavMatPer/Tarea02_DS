@@ -1,0 +1,340 @@
+classDiagram
+    %% ==========================================
+    %% ENUMERACIONES
+    %% ==========================================
+    class EstadoBoleto {
+        <<enumeration>>
+        DISPONIBLE
+        RESERVADO
+        VENDIDO
+        CANCELADO
+    }
+
+    class TipoEntrada {
+        <<enumeration>>
+        GENERAL
+        RESERVADO
+        VIP
+    }
+
+    class EstadoEvento {
+        <<enumeration>>
+        ABIERTO
+        EN_RESOLUCION
+        ESCALADO
+        CERRADO
+    }
+
+    class EstadoIncidente {
+        <<enumeration>>
+        ACTIVO
+        CANCELADO
+        REPROGRAMADO
+    }
+
+    %% ==========================================
+    %% INTERFACES
+    %% ==========================================
+    class IGestionableEvento {
+        <<interface>>
+        +cancelar(motivo: String) bool
+        +cambiarFecha(nuevaFecha: Date) bool
+    }
+
+    class EstrategiaPago {
+        <<interface>>
+        +procesarPago(monto: float, metodo: String) Pago
+        +revertirPago(pagoId: String) bool
+    }
+
+    class ICanal {
+        <<interface>>
+        +enviar(mensaje: NotificacionMensaje) bool
+        +verificarDisponibilidad() bool
+    }
+
+    class IResolvedor {
+        <<interface>>
+        +resolver(incidente: Incidente) bool
+        +escalar(incidente: Incidente) bool
+    }
+
+    class IPoliticaCompra {
+        <<interface>>
+        +validarCompra(comprador: Comprador, cantidad: int) bool
+        +calcularReembolso(monto: float) float
+        +permiteCambioFecha() bool
+    }
+
+    %% ==========================================
+    %% JERARQUÍA DE USUARIOS
+    %% ==========================================
+    class Usuario {
+        -id: String
+        -nombre: String
+        -email: String
+        -telefono: String
+        +getId() String
+        +getEmail() String
+    }
+
+    class Comprador {
+        -canalPreferido: String
+        -limiteCompra: int
+        +getCanalPreferido() String
+        +getLimiteCompra() int
+    }
+
+    class Organizador {
+        -organizacion: String
+        +getOrganizacion() String
+    }
+
+    class AgentesSoporte {
+        -nivel: int
+        +getNivel() int
+    }
+
+    class AdminEvento {
+        -departamento: String
+        +getDepartamento() String
+    }
+
+    Usuario <|-- Comprador
+    Usuario <|-- Organizador
+    Usuario <|-- AgentesSoporte
+    Usuario <|-- AdminEvento
+
+    IResolvedor <|.. AgentesSoporte : implementa
+    IResolvedor <|.. AdminEvento : implementa
+
+    %% ==========================================
+    %% ENTIDADES PRINCIPALES
+    %% ==========================================
+    class Evento {
+        -id: String
+        -nombre: String
+        -artista: String
+        -fecha: Date
+        -lugar: String
+        -genero: String
+        -estado: EstadoEvento
+        -capacidadTotal: int
+        +getId() String
+        +getEstado() EstadoEvento
+        +getDisponibilidad() int
+        +actualizarEstado(estado: EstadoEvento)
+    }
+
+    class PoliticaEventoBase {
+        -permiteDevoluciones: bool
+        -plazoDevolucionDias: int
+        -porcentajeReembolso: float
+        +validarCompra(comprador: Comprador, cantidad: int) bool
+        +calcularReembolso(monto: float) float
+        +permiteCambioFecha() bool
+    }
+
+    class PoliticaDecorator {
+        <<abstract>>
+        #componente: IPoliticaCompra
+        +validarCompra(comprador: Comprador, cantidad: int) bool
+        +calcularReembolso(monto: float) float
+        +permiteCambioFecha() bool
+    }
+
+    %% Decorators conretos%
+
+    class LimiteBoletosDecorator {
+        -limiteBoletoPorUsuario: int
+        +validarCompra(comprador: Comprador, cantidad: int) bool
+    }
+
+    class VerificacionEdadDecorator {
+        -edadMinima: int
+        +validarCompra(comprador: Comprador, cantidad: int) bool
+    }
+
+    class RestriccionSocioDecorator {
+        -requiereMembresia: bool
+        +validarCompra(comprador: Comprador, cantidad: int) bool
+    }
+
+    IPoliticaCompra <|.. PoliticaEventoBase : implementa
+    IPoliticaCompra <|.. PoliticaDecorator : implementa
+    PoliticaDecorator o-- IPoliticaCompra : envuelve (componente)
+    PoliticaDecorator <|-- LimiteBoletosDecorator : hereda
+    PoliticaDecorator <|-- VerificacionEdadDecorator : hereda
+    PoliticaDecorator <|-- RestriccionSocioDecorator : hereda
+
+    class Boleto {
+        -id: String
+        -tipo: TipoEntrada
+        -precio: float
+        -estado: EstadoBoleto
+        -codigoDigital: String
+        +getEstado() EstadoBoleto
+        +cambiarEstado(estado: EstadoBoleto)
+        +generarCodigoDigital() String
+    }
+
+
+    class Reserva {
+        -id: String
+        -fechaCreacion: Date
+        -fechaExpiracion: Date
+        -cantidad: int
+        +estaVigente() bool
+        +confirmar() bool
+        +expirar()
+    }
+
+    class Pago {
+        -id: String
+        -monto: float
+        -metodo: String
+        -estado: String
+        -fechaPago: Date
+        +getId() String
+        +getEstado() String
+    }
+
+
+    class Incidente {
+        -id: String
+        -descripcion: String
+        -tipo: String
+        -estado: EstadoIncidente
+        -fechaReporte: Date
+        -historialAcciones: String[]
+        +getEstado() EstadoIncidente
+        +agregarAccion(accion: String)
+        +cambiarEstado(estado: EstadoIncidente)
+    }
+
+    class NotificacionMensaje {
+        -asunto: String
+        -cuerpo: String
+        -tipoEvento: String
+        -destinatarioId: String
+        +getAsunto() String
+        +getCuerpo() String
+        +getDestinatarioId() String
+    }
+
+    %% ==========================================
+    %% ESTRATEGIAS CONCRETAS DE PAGO (STRATEGY)
+    %% ==========================================
+    class PagoTarjetaStrategy {
+        -pasarela: String
+        +procesarPago(monto: float, datos: Map) Pago
+        +revertirPago(pagoId: String) bool
+    }
+
+    class PagoTransferenciaStrategy {
+        -banco: String
+        +procesarPago(monto: float, datos: Map) Pago
+        +revertirPago(pagoId: String) bool
+    }
+
+    class PagoMovilStrategy {
+        -servicioMovil: String
+        +procesarPago(monto: float, datos: Map) Pago
+        +revertirPago(pagoId: String) bool
+    }
+
+    EstrategiaPago <|.. PagoTarjetaStrategy : implementa
+    EstrategiaPago <|.. PagoTransferenciaStrategy : implementa
+    EstrategiaPago <|.. PagoMovilStrategy : implementa
+
+    %% ==========================================
+    %% GESTORES / SERVICIOS
+    %% ==========================================
+    class GestorEventos {
+        -gestorNotif: GestorNotificaciones
+        +cancelarEvento(evento: Evento, motivo: String)
+        +cambiarFecha(evento: Evento, nuevaFecha: Date)
+        +procesarDevoluciones(evento: Evento)
+        +intercambiarBoletos(evento: Evento, nuevaFecha: Date)
+    }
+
+    class GestorReservas {
+        -estrategiaPago: EstrategiaPago
+        +buscarEventos(criterios: String) Evento[]
+        +crearReserva(comprador: Comprador, boletos: Boleto[], cantidad: int) Reserva
+        +confirmarCompra(reserva: Reserva, metodo: String) Pago %% Llama internamente a la Estrateegiua pago para confirmar
+        +cancelarReserva(reserva: Reserva)
+        +setEstrategiaPago(estrategia: EstrategiaPago)
+    }
+
+    class GestorNotificaciones {
+        -canales: ICanal[]
+        +notificarCompradores(evento: Evento, mensaje: NotificacionMensaje)
+        +seleccionarCanal(comprador: Comprador) ICanal
+        +enviarNotificacion(canal: ICanal, mensaje: NotificacionMensaje) bool
+    }
+
+    class GestorIncidentes {
+        -resolver: IResolvedor
+        +registrarIncidente(comprador: Comprador, descripcion: String) Incidente
+        +asignarAgente(incidente: Incidente, agente: AgentesSoporte)
+        +cerrarIncidente(incidente: Incidente, resolucion: String)
+    }
+
+    IGestionableEvento <|.. GestorEventos : implementa
+
+
+    %% ==========================================
+    %% IMPLEMENTACIONES DE CANALES
+    %% ==========================================
+    class CanalEmail {
+        -servidorSMTP: String
+        +enviar(mensaje: NotificacionMensaje) bool
+        +verificarDisponibilidad() bool
+    }
+
+    class CanalSMS {
+        -proveedorSMS: String
+        +enviar(mensaje: NotificacionMensaje) bool
+        +verificarDisponibilidad() bool
+    }
+
+    class CanalMovil {
+        -tokenServicio: String
+        +enviar(mensaje: NotificacionMensaje) bool
+        +verificarDisponibilidad() bool
+    }
+
+    ICanal <|.. CanalEmail : implementa
+    ICanal <|.. CanalSMS : implementa
+    ICanal <|.. CanalMovil : implementa
+
+    %% ==========================================
+    %% RELACIONES DEL SISTEMA
+    %% ==========================================
+    Organizador "1" --> "0..*" Reserva : realiza
+    Comprador "1" --> "0..*" Incidente : reporta
+    
+    Reserva "1" --> "1..*" Boleto : contiene
+    Reserva "1" --> "1" Pago : genera
+    
+    Evento "1" --> "0..*" Boleto : ofrece
+    Evento "1" --> "1" IPoliticaCompra : tiene
+    
+    Boleto "0..*" --> "1" Evento : pertenece a
+    
+    GestorReservas o-- EstrategiaPago : utiliza estrategia activa
+    GestorReservas ..> IPoliticaCompra : valida con
+    GestorReservas ..> GestorNotificaciones : delega notif.
+    
+    GestorEventos ..> EstrategiaPago : revierte pagos
+    GestorEventos ..> GestorNotificaciones : delega notif.
+    
+    GestorNotificaciones ..> ICanal : usa
+    
+    Incidente "0..1" --> "0..1" AgentesSoporte : atendido por
+    Incidente "0..1" --> "0..1" AdminEvento : escalado a
+    
+    GestorIncidentes ..> IResolvedor : delega resolución
+    
+    NotificacionMensaje "1" --> "1" Usuario : dirigida a

@@ -1,8 +1,16 @@
 package com.ticketbeat.gestores;
 
-import com.ticketbeat.interfaces.IProveedorPago;
+import com.ticketbeat.interfaces.EstrategiaPago;
+import com.ticketbeat.modelo.Pago;
+import java.util.Map;
 
 public class GestorReservas {
+
+    private EstrategiaPago estrategiaPago;
+
+    public void setEstrategiaPago(EstrategiaPago estrategia) {
+        this.estrategiaPago = estrategia;
+    }
 
     public void buscarEventos() {
         System.out.println("Mostrando eventos disponibles...");
@@ -25,16 +33,16 @@ public class GestorReservas {
     private void reservarEntradas() { }
     private void iniciarTemporizadorDeReserva() { }
 
-    public void seleccionDeMetodoDePago(IProveedorPago proveedor, double monto) {
-        procesarCobro(proveedor, monto);
-    }
+    public void confirmarCompra(double monto, Map<String, String> datos) {
+        if (this.estrategiaPago == null) {
+            System.out.println("Error: No se ha seleccionado una estrategia de pago.");
+            return;
+        }
 
-    private void procesarCobro(IProveedorPago proveedor, double monto) {
-        // Fragmento ALT: Pago aprobado o rechazado
-        boolean aprobado = proveedor.procesarPago(monto);
-        
-        if (aprobado) {
-            System.out.println("Confirmación de pago");
+        Pago pago = this.estrategiaPago.procesarPago(monto, datos);
+
+        if (pago != null && "COMPLETADO".equals(pago.getEstado())) {
+            System.out.println("Confirmación de pago (ID: " + pago.getId() + ")");
             marcarEntradasComoVendidas();
             generarBoletosDigitales();
             System.out.println("Confirmación de compra y boletos");
