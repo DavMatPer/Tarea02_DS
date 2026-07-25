@@ -53,18 +53,66 @@ classDiagram
         +verificarDisponibilidad() bool
     }
 
-    class IResolvedor {
-        <<interface>>
-        +resolver(incidente: Incidente) bool
-        +escalar(incidente: Incidente) bool
-    }
-
     class IPoliticaCompra {
         <<interface>>
         +validarCompra(comprador: Comprador, cantidad: int) bool
         +calcularReembolso(monto: float) float
         +permiteCambioFecha() bool
     }
+
+    %% ==========================================
+    %% PATRÓN 1: FACTORY METHOD (CREACIÓN DE BOLETOS)
+    %% ==========================================
+    class IBoleto {
+        <<interface>>
+        +mostrarDetalles() void
+        +getEstado() EstadoBoleto
+        +getPrecio() float
+    }
+
+    class BoletoVIP {
+        -zonaVIP: String
+        -beneficios: String[]
+        +mostrarDetalles() void
+    }
+
+    class BoletoGeneral {
+        -seccion: String
+        +mostrarDetalles() void
+    }
+
+    class BoletoReservado {
+        -numeroAsiento: String
+        -fila: String
+        +mostrarDetalles() void
+    }
+
+    IBoleto <|.. BoletoVIP : implementa
+    IBoleto <|.. BoletoGeneral : implementa
+    IBoleto <|.. BoletoReservado : implementa
+
+    class CreadorBoleto {
+        <<abstract>>
+        +procesarEmision() void
+        +crearBoleto() IBoleto
+    }
+
+    class CreadorBoletoVIP {
+        +crearBoleto() IBoleto
+    }
+
+    class CreadorBoletoGeneral {
+        +crearBoleto() IBoleto
+    }
+
+    class CreadorBoletoReservado {
+        +crearBoleto() IBoleto
+    }
+
+    CreadorBoleto <|-- CreadorBoletoVIP
+    CreadorBoleto <|-- CreadorBoletoGeneral
+    CreadorBoleto <|-- CreadorBoletoReservado
+    CreadorBoleto ..> IBoleto : crea / usa
 
     %% ==========================================
     %% JERARQUÍA DE USUARIOS
@@ -90,26 +138,53 @@ classDiagram
         +getOrganizacion() String
     }
 
-    class AgentesSoporte {
-        -nivel: int
-        +getNivel() int
-    }
-
-    class AdminEvento {
-        -departamento: String
-        +getDepartamento() String
-    }
-
     Usuario <|-- Comprador
     Usuario <|-- Organizador
-    Usuario <|-- AgentesSoporte
-    Usuario <|-- AdminEvento
 
-    IResolvedor <|.. AgentesSoporte : implementa
-    IResolvedor <|.. AdminEvento : implementa
+
+    
+    %% ==========================================
+    %% PATRÓN 4: CHAIN OF RESPONSIBILITY (INCIDENTES)
+    %% ==========================================
+    class Incidente {
+        -id: String
+        -descripcion: String
+        -tipo: String
+        -estado: EstadoIncidente
+        -fechaReporte: Date
+        -historialAcciones: String[]
+        +getEstado() EstadoIncidente
+        +agregarAccion(accion: String)
+        +cambiarEstado(estado: EstadoIncidente)
+    }
+
+    class ManejadorIncidente {
+        <<abstract>>
+        #siguienteManejador: ManejadorIncidente
+        +setSiguienteManejador(man: ManejadorIncidente) void
+        +manejarIncidente(incidente: Incidente) void
+    }
+
+    class AgenteSoporte {
+        -idAgente: String
+        +manejarIncidente(incidente: Incidente) void
+        +puedeResolver(incidente: Incidente) bool
+    }
+
+    class DepartamentoAdministracion {
+        -idDepartamento: String
+        +manejarIncidente(incidente: Incidente) void
+        +resolucionFinal(incidente: Incidente) void
+    }
+
+    ManejadorIncidente <|-- AgenteSoporte
+    ManejadorIncidente <|-- DepartamentoAdministracion
+    ManejadorIncidente o-- ManejadorIncidente : #siguienteManejador
+    ManejadorIncidente ..> Incidente : maneja
+    Usuario "1" --> "0..*" Incidente : reporta
 
     %% ==========================================
-    %% ENTIDADES PRINCIPALES
+    %% PATRÓN DECORATOR (POLÍTICAS DE EVENTO)
     %% ==========================================
     class Evento {
         -id: String
@@ -143,8 +218,6 @@ classDiagram
         +permiteCambioFecha() bool
     }
 
-    %% Decorators conretos%
-
     class LimiteBoletosDecorator {
         -limiteBoletoPorUsuario: int
         +validarCompra(comprador: Comprador, cantidad: int) bool
@@ -167,16 +240,14 @@ classDiagram
     PoliticaDecorator <|-- VerificacionEdadDecorator : hereda
     PoliticaDecorator <|-- RestriccionSocioDecorator : hereda
 
-    class Boleto {
-        -id: String
-        -tipo: TipoEntrada
-        -precio: float
-        -estado: EstadoBoleto
-        -codigoDigital: String
-        +getEstado() EstadoBoleto
-        +cambiarEstado(estado: EstadoBoleto)
-        +generarCodigoDigital() String
-    }
+    Usuario <|-- Comprador
+    Usuario <|-- Organizador
+    Usuario <|-- ManejadorIncidente
+
+
+    %% ==========================================
+    %% ENTIDADES Y PATRÓN STRATEGY (PAGOS)
+    %% ==========================================
 
 
     class Reserva {
@@ -198,33 +269,7 @@ classDiagram
         +getId() String
         +getEstado() String
     }
-
-
-    class Incidente {
-        -id: String
-        -descripcion: String
-        -tipo: String
-        -estado: EstadoIncidente
-        -fechaReporte: Date
-        -historialAcciones: String[]
-        +getEstado() EstadoIncidente
-        +agregarAccion(accion: String)
-        +cambiarEstado(estado: EstadoIncidente)
-    }
-
-    class NotificacionMensaje {
-        -asunto: String
-        -cuerpo: String
-        -tipoEvento: String
-        -destinatarioId: String
-        +getAsunto() String
-        +getCuerpo() String
-        +getDestinatarioId() String
-    }
-
-    %% ==========================================
-    %% ESTRATEGIAS CONCRETAS DE PAGO (STRATEGY)
-    %% ==========================================
+    
     class PagoTarjetaStrategy {
         -pasarela: String
         +procesarPago(monto: float, datos: Map) Pago
@@ -287,6 +332,13 @@ classDiagram
     %% ==========================================
     %% IMPLEMENTACIONES DE CANALES
     %% ==========================================
+    class NotificacionMensaje {
+        -asunto: String
+        -cuerpo: String
+        -tipoEvento: String
+        -destinatarioId: String
+    }
+
     class CanalEmail {
         -servidorSMTP: String
         +enviar(mensaje: NotificacionMensaje) bool
@@ -312,29 +364,28 @@ classDiagram
     %% ==========================================
     %% RELACIONES DEL SISTEMA
     %% ==========================================
+    %% Relaciones de Entidades y Creación
     Organizador "1" --> "0..*" Reserva : realiza
     Comprador "1" --> "0..*" Incidente : reporta
     
-    Reserva "1" --> "1..*" Boleto : contiene
+    Reserva "1" --> "1..*" IBoleto : contiene
     Reserva "1" --> "1" Pago : genera
     
-    Evento "1" --> "0..*" Boleto : ofrece
+    Evento "1" --> "0..*" IBoleto : ofrece
     Evento "1" --> "1" IPoliticaCompra : tiene
+    IBoleto "0..*" --> "1" Evento : pertenece a
     
-    Boleto "0..*" --> "1" Evento : pertenece a
-    
+    %% Relaciones con los Gestores / Servicios principales
     GestorReservas o-- EstrategiaPago : utiliza estrategia activa
-    GestorReservas ..> IPoliticaCompra : valida con
-    GestorReservas ..> GestorNotificaciones : delega notif.
+    GestorReservas ..> CreadorBoleto : solicita emisión de boletos
+    GestorReservas ..> IPoliticaCompra : valida restricciones de compra
+    GestorReservas ..> GestorNotificaciones : delega notificaciones de compra
     
     GestorEventos ..> EstrategiaPago : revierte pagos
-    GestorEventos ..> GestorNotificaciones : delega notif.
+    GestorEventos ..> GestorNotificaciones : delega notificaciones de eventos
     
-    GestorNotificaciones ..> ICanal : usa
+    GestorNotificaciones ..> ICanal : usa para envío
     
-    Incidente "0..1" --> "0..1" AgentesSoporte : atendido por
-    Incidente "0..1" --> "0..1" AdminEvento : escalado a
-    
-    GestorIncidentes ..> IResolvedor : delega resolución
+    GestorIncidentes o-- ManejadorIncidente : inicia cadena de soporte
     
     NotificacionMensaje "1" --> "1" Usuario : dirigida a
