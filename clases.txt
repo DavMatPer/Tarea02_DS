@@ -1,236 +1,138 @@
 classDiagram
-    %% ==========================================
-    %% ENUMERACIONES
-    %% ==========================================
-    class EstadoBoleto {
-        <<enumeration>>
-        DISPONIBLE
-        RESERVADO
-        VENDIDO
-        CANCELADO
-    }
-
-    class TipoEntrada {
-        <<enumeration>>
-        GENERAL
-        RESERVADO
-        VIP
-    }
-
-    class EstadoEvento {
-        <<enumeration>>
-        ABIERTO
-        EN_RESOLUCION
-        ESCALADO
-        CERRADO
-    }
-
-    class EstadoIncidente {
-        <<enumeration>>
-        ACTIVO
-        CANCELADO
-        REPROGRAMADO
-    }
 
     %% ==========================================
-    %% INTERFACES
+    %% PAQUETE: PATRÓN FACTORY METHOD (BOLETOS)
     %% ==========================================
-    class IGestionableEvento {
-        <<interface>>
-        +cancelar(motivo: String) bool
-        +cambiarFecha(nuevaFecha: Date) bool
-    }
+    namespace FactoryMethodBoletos {
+        class IBoleto {
+            <<interface>>
+            +mostrarDetalles() void
+            +getEstado() EstadoBoleto
+            +getPrecio() float
+        }
 
-    class EstrategiaPago {
-        <<interface>>
-        +procesarPago(monto: float, metodo: String) Pago
-        +revertirPago(pagoId: String) bool
-    }
+        class BoletoVIP {
+            -zonaVIP: String
+            -beneficios: String[]
+            +mostrarDetalles() void
+        }
 
-    class ICanal {
-        <<interface>>
-        +enviar(mensaje: NotificacionMensaje) bool
-        +verificarDisponibilidad() bool
-    }
+        class BoletoGeneral {
+            -seccion: String
+            +mostrarDetalles() void
+        }
 
-    class IPoliticaCompra {
-        <<interface>>
-        +validarCompra(comprador: Comprador, cantidad: int) bool
-        +calcularReembolso(monto: float) float
-        +permiteCambioFecha() bool
-    }
+        class BoletoReservado {
+            -numeroAsiento: String
+            -fila: String
+            +mostrarDetalles() void
+        }
 
-    %% ==========================================
-    %% PATRÓN 1: FACTORY METHOD (CREACIÓN DE BOLETOS)
-    %% ==========================================
-    class IBoleto {
-        <<interface>>
-        +mostrarDetalles() void
-        +getEstado() EstadoBoleto
-        +getPrecio() float
-    }
+        class CreadorBoleto {
+            <<abstract>>
+            +procesarEmision() void
+            +crearBoleto()* IBoleto
+        }
 
-    class BoletoVIP {
-        -zonaVIP: String
-        -beneficios: String[]
-        +mostrarDetalles() void
-    }
+        class CreadorBoletoVIP {
+            +crearBoleto() IBoleto
+        }
 
-    class BoletoGeneral {
-        -seccion: String
-        +mostrarDetalles() void
-    }
+        class CreadorBoletoGeneral {
+            +crearBoleto() IBoleto
+        }
 
-    class BoletoReservado {
-        -numeroAsiento: String
-        -fila: String
-        +mostrarDetalles() void
+        class CreadorBoletoReservado {
+            +crearBoleto() IBoleto
+        }
     }
 
     IBoleto <|.. BoletoVIP : implementa
     IBoleto <|.. BoletoGeneral : implementa
     IBoleto <|.. BoletoReservado : implementa
 
-    class CreadorBoleto {
-        <<abstract>>
-        +procesarEmision() void
-        +crearBoleto() IBoleto
-    }
-
-    class CreadorBoletoVIP {
-        +crearBoleto() IBoleto
-    }
-
-    class CreadorBoletoGeneral {
-        +crearBoleto() IBoleto
-    }
-
-    class CreadorBoletoReservado {
-        +crearBoleto() IBoleto
-    }
-
     CreadorBoleto <|-- CreadorBoletoVIP
     CreadorBoleto <|-- CreadorBoletoGeneral
     CreadorBoleto <|-- CreadorBoletoReservado
     CreadorBoleto ..> IBoleto : crea / usa
 
-    %% ==========================================
-    %% JERARQUÍA DE USUARIOS
-    %% ==========================================
-    class Usuario {
-        -id: String
-        -nombre: String
-        -email: String
-        -telefono: String
-        +getId() String
-        +getEmail() String
-    }
-
-    class Comprador {
-        -canalPreferido: String
-        -limiteCompra: int
-        +getCanalPreferido() String
-        +getLimiteCompra() int
-    }
-
-    class Organizador {
-        -organizacion: String
-        +getOrganizacion() String
-    }
-
-    Usuario <|-- Comprador
-    Usuario <|-- Organizador
-
-
-    
-    %% ==========================================
-    %% PATRÓN 4: CHAIN OF RESPONSIBILITY (INCIDENTES)
-    %% ==========================================
-    class Incidente {
-        -id: String
-        -descripcion: String
-        -tipo: String
-        -estado: EstadoIncidente
-        -fechaReporte: Date
-        -historialAcciones: String[]
-        +getEstado() EstadoIncidente
-        +agregarAccion(accion: String)
-        +cambiarEstado(estado: EstadoIncidente)
-    }
-
-    class ManejadorIncidente {
-        <<abstract>>
-        #siguienteManejador: ManejadorIncidente
-        +setSiguienteManejador(man: ManejadorIncidente) void
-        +manejarIncidente(incidente: Incidente) void
-    }
-
-    class AgenteSoporte {
-        -idAgente: String
-        +manejarIncidente(incidente: Incidente) void
-        +puedeResolver(incidente: Incidente) bool
-    }
-
-    class DepartamentoAdministracion {
-        -idDepartamento: String
-        +manejarIncidente(incidente: Incidente) void
-        +resolucionFinal(incidente: Incidente) void
-    }
-
-    ManejadorIncidente <|-- AgenteSoporte
-    ManejadorIncidente <|-- DepartamentoAdministracion
-    ManejadorIncidente o-- ManejadorIncidente : #siguienteManejador
-    ManejadorIncidente ..> Incidente : maneja
-    Usuario "1" --> "0..*" Incidente : reporta
 
     %% ==========================================
-    %% PATRÓN DECORATOR (POLÍTICAS DE EVENTO)
+    %% PAQUETE: PATRÓN STRATEGY (PAGOS)
     %% ==========================================
-    class Evento {
-        -id: String
-        -nombre: String
-        -artista: String
-        -fecha: Date
-        -lugar: String
-        -genero: String
-        -estado: EstadoEvento
-        -capacidadTotal: int
-        +getId() String
-        +getEstado() EstadoEvento
-        +getDisponibilidad() int
-        +actualizarEstado(estado: EstadoEvento)
+    namespace StrategyPago {
+        class EstrategiaPago {
+            <<interface>>
+            +procesarPago(monto: float, datos: Map) Pago
+            +revertirPago(pagoId: String) bool
+        }
+
+        class PagoTarjetaStrategy {
+            -pasarela: String
+            +procesarPago(monto: float, datos: Map) Pago
+            +revertirPago(pagoId: String) bool
+        }
+
+        class PagoTransferenciaStrategy {
+            -banco: String
+            +procesarPago(monto: float, datos: Map) Pago
+            +revertirPago(pagoId: String) bool
+        }
+
+        class PagoMovilStrategy {
+            -servicioMovil: String
+            +procesarPago(monto: float, datos: Map) Pago
+            +revertirPago(pagoId: String) bool
+        }
     }
 
-    class PoliticaEventoBase {
-        -permiteDevoluciones: bool
-        -plazoDevolucionDias: int
-        -porcentajeReembolso: float
-        +validarCompra(comprador: Comprador, cantidad: int) bool
-        +calcularReembolso(monto: float) float
-        +permiteCambioFecha() bool
-    }
+    EstrategiaPago <|.. PagoTarjetaStrategy : implementa
+    EstrategiaPago <|.. PagoTransferenciaStrategy : implementa
+    EstrategiaPago <|.. PagoMovilStrategy : implementa
 
-    class PoliticaDecorator {
-        <<abstract>>
-        #componente: IPoliticaCompra
-        +validarCompra(comprador: Comprador, cantidad: int) bool
-        +calcularReembolso(monto: float) float
-        +permiteCambioFecha() bool
-    }
 
-    class LimiteBoletosDecorator {
-        -limiteBoletoPorUsuario: int
-        +validarCompra(comprador: Comprador, cantidad: int) bool
-    }
+    %% ==========================================
+    %% PAQUETE: PATRÓN DECORATOR (RESTRICCIONES)
+    %% ==========================================
+    namespace DecoratorPoliticas {
+        class IPoliticaCompra {
+            <<interface>>
+            +validarCompra(comprador: Comprador, cantidad: int) bool
+            +calcularReembolso(monto: float) float
+            +permiteCambioFecha() bool
+        }
 
-    class VerificacionEdadDecorator {
-        -edadMinima: int
-        +validarCompra(comprador: Comprador, cantidad: int) bool
-    }
+        class PoliticaEventoBase {
+            -permiteDevoluciones: bool
+            -plazoDevolucionDias: int
+            -porcentajeReembolso: float
+            +validarCompra(comprador: Comprador, cantidad: int) bool
+            +calcularReembolso(monto: float) float
+            +permiteCambioFecha() bool
+        }
 
-    class RestriccionSocioDecorator {
-        -requiereMembresia: bool
-        +validarCompra(comprador: Comprador, cantidad: int) bool
+        class PoliticaDecorator {
+            <<abstract>>
+            #componente: IPoliticaCompra
+            +validarCompra(comprador: Comprador, cantidad: int) bool
+            +calcularReembolso(monto: float) float
+            +permiteCambioFecha() bool
+        }
+
+        class LimiteBoletosDecorator {
+            -limiteBoletoPorUsuario: int
+            +validarCompra(comprador: Comprador, cantidad: int) bool
+        }
+
+        class VerificacionEdadDecorator {
+            -edadMinima: int
+            +validarCompra(comprador: Comprador, cantidad: int) bool
+        }
+
+        class RestriccionSocioDecorator {
+            -requiereMembresia: bool
+            +validarCompra(comprador: Comprador, cantidad: int) bool
+        }
     }
 
     IPoliticaCompra <|.. PoliticaEventoBase : implementa
@@ -240,131 +142,169 @@ classDiagram
     PoliticaDecorator <|-- VerificacionEdadDecorator : hereda
     PoliticaDecorator <|-- RestriccionSocioDecorator : hereda
 
-    Usuario <|-- Comprador
-    Usuario <|-- Organizador
-    Usuario <|-- ManejadorIncidente
+
+    %% ==========================================
+    %% PAQUETE: PATRÓN CHAIN OF RESPONSIBILITY (SOPORTE)
+    %% ==========================================
+    namespace ChainOfResponsibilitySoporte {
+        class ManejadorIncidente {
+            <<abstract>>
+            #siguienteManejador: ManejadorIncidente
+            +setSiguienteManejador(man: ManejadorIncidente) void
+            +manejarIncidente(incidente: Incidente) void
+        }
+
+        class AgenteSoporte {
+            -idAgente: String
+            +manejarIncidente(incidente: Incidente) void
+            +puedeResolver(incidente: Incidente) bool
+        }
+
+        class DepartamentoAdministracion {
+            -idDepartamento: String
+            +manejarIncidente(incidente: Incidente) void
+            +resolucionFinal(incidente: Incidente) void
+        }
+    }
+
+    ManejadorIncidente <|-- AgenteSoporte
+    ManejadorIncidente <|-- DepartamentoAdministracion
+    ManejadorIncidente o-- ManejadorIncidente : #siguienteManejador
 
 
     %% ==========================================
-    %% ENTIDADES Y PATRÓN STRATEGY (PAGOS)
+    %% PAQUETE: PATRÓN OBSERVER (NOTIFICACIONES)
     %% ==========================================
+    namespace ObserverNotificaciones {
+        class ICanal {
+            <<interface>>
+            +enviar(mensaje: NotificacionMensaje) bool
+            +verificarDisponibilidad() bool
+        }
 
+        class CanalEmail {
+            -servidorSMTP: String
+            +enviar(mensaje: NotificacionMensaje) bool
+            +verificarDisponibilidad() bool
+        }
 
-    class Reserva {
-        -id: String
-        -fechaCreacion: Date
-        -fechaExpiracion: Date
-        -cantidad: int
-        +estaVigente() bool
-        +confirmar() bool
-        +expirar()
-    }
+        class CanalSMS {
+            -proveedorSMS: String
+            +enviar(mensaje: NotificacionMensaje) bool
+            +verificarDisponibilidad() bool
+        }
 
-    class Pago {
-        -id: String
-        -monto: float
-        -metodo: String
-        -estado: String
-        -fechaPago: Date
-        +getId() String
-        +getEstado() String
-    }
-    
-    class PagoTarjetaStrategy {
-        -pasarela: String
-        +procesarPago(monto: float, datos: Map) Pago
-        +revertirPago(pagoId: String) bool
-    }
-
-    class PagoTransferenciaStrategy {
-        -banco: String
-        +procesarPago(monto: float, datos: Map) Pago
-        +revertirPago(pagoId: String) bool
-    }
-
-    class PagoMovilStrategy {
-        -servicioMovil: String
-        +procesarPago(monto: float, datos: Map) Pago
-        +revertirPago(pagoId: String) bool
-    }
-
-    EstrategiaPago <|.. PagoTarjetaStrategy : implementa
-    EstrategiaPago <|.. PagoTransferenciaStrategy : implementa
-    EstrategiaPago <|.. PagoMovilStrategy : implementa
-
-    %% ==========================================
-    %% GESTORES / SERVICIOS
-    %% ==========================================
-    class GestorEventos {
-        -gestorNotif: GestorNotificaciones
-        +cancelarEvento(evento: Evento, motivo: String)
-        +cambiarFecha(evento: Evento, nuevaFecha: Date)
-        +procesarDevoluciones(evento: Evento)
-        +intercambiarBoletos(evento: Evento, nuevaFecha: Date)
-    }
-
-    class GestorReservas {
-        -estrategiaPago: EstrategiaPago
-        +buscarEventos(criterios: String) Evento[]
-        +crearReserva(comprador: Comprador, boletos: Boleto[], cantidad: int) Reserva
-        +confirmarCompra(reserva: Reserva, metodo: String) Pago %% Llama internamente a la Estrateegiua pago para confirmar
-        +cancelarReserva(reserva: Reserva)
-        +setEstrategiaPago(estrategia: EstrategiaPago)
-    }
-
-    class GestorNotificaciones {
-        -canales: ICanal[]
-        +notificarCompradores(evento: Evento, mensaje: NotificacionMensaje)
-        +seleccionarCanal(comprador: Comprador) ICanal
-        +enviarNotificacion(canal: ICanal, mensaje: NotificacionMensaje) bool
-    }
-
-    class GestorIncidentes {
-        -resolver: IResolvedor
-        +registrarIncidente(comprador: Comprador, descripcion: String) Incidente
-        +asignarAgente(incidente: Incidente, agente: AgentesSoporte)
-        +cerrarIncidente(incidente: Incidente, resolucion: String)
-    }
-
-    IGestionableEvento <|.. GestorEventos : implementa
-
-
-    %% ==========================================
-    %% IMPLEMENTACIONES DE CANALES
-    %% ==========================================
-    class NotificacionMensaje {
-        -asunto: String
-        -cuerpo: String
-        -tipoEvento: String
-        -destinatarioId: String
-    }
-
-    class CanalEmail {
-        -servidorSMTP: String
-        +enviar(mensaje: NotificacionMensaje) bool
-        +verificarDisponibilidad() bool
-    }
-
-    class CanalSMS {
-        -proveedorSMS: String
-        +enviar(mensaje: NotificacionMensaje) bool
-        +verificarDisponibilidad() bool
-    }
-
-    class CanalMovil {
-        -tokenServicio: String
-        +enviar(mensaje: NotificacionMensaje) bool
-        +verificarDisponibilidad() bool
+        class CanalMovil {
+            -tokenServicio: String
+            +enviar(mensaje: NotificacionMensaje) bool
+            +verificarDisponibilidad() bool
+        }
     }
 
     ICanal <|.. CanalEmail : implementa
     ICanal <|.. CanalSMS : implementa
     ICanal <|.. CanalMovil : implementa
 
+
     %% ==========================================
-    %% RELACIONES DEL SISTEMA
+    %% PAQUETE: MODELO DOMINIO Y GESTORES
     %% ==========================================
-    %% Relaciones de Entidades y Creación
+    namespace ModeloDominio {
+        class Usuario {
+            -id: String
+            -nombre: String
+            -email: String
+            -telefono: String
+            +getId() String
+            +getEmail() String
+        }
+
+        class Comprador {
+            -canalPreferido: String
+            -limiteCompra: int
+            +getCanalPreferido() String
+            +getLimiteCompra() int
+        }
+
+        class Organizador {
+            -organizacion: String
+            +getOrganizacion() String
+        }
+
+        class Evento {
+            -id: String
+            -nombre: String
+            -artista: String
+            -fecha: Date
+            -lugar: String
+            -genero: String
+            -estado: EstadoEvento
+            -capacidadTotal: int
+            +getId() String
+            +getEstado() EstadoEvento
+            +getDisponibilidad() int
+        }
+
+        class Reserva {
+            -id: String
+            -fechaCreacion: Date
+            -fechaExpiracion: Date
+            -cantidad: int
+            +estaVigente() bool
+            +expirar() void
+        }
+
+        class Pago {
+            -id: String
+            -monto: float
+            -metodo: String
+            -estado: String
+            -fechaPago: Date
+            +getId() String
+        }
+
+        class Incidente {
+            -id: String
+            -descripcion: String
+            -tipo: String
+            -estado: EstadoIncidente
+            -fechaReporte: Date
+        }
+
+        class NotificacionMensaje {
+            -asunto: String
+            -cuerpo: String
+            -tipoEvento: String
+            -destinatarioId: String
+        }
+
+        class GestorReservas {
+            -estrategiaPago: EstrategiaPago
+            +crearReserva(comprador: Comprador, boletos: IBoleto[], cantidad: int) Reserva
+            +confirmarCompra(reserva: Reserva, metodo: String) Pago
+            +setEstrategiaPago(estrategia: EstrategiaPago)
+        }
+
+        class GestorEventos {
+            -gestorNotif: GestorNotificaciones
+            +cancelarEvento(evento: Evento, motivo: String)
+        }
+
+        class GestorNotificaciones {
+            -canales: ICanal[]
+            +notificarCompradores(evento: Evento, mensaje: NotificacionMensaje)
+        }
+
+        class GestorIncidentes {
+            -cadenaSoporte: ManejadorIncidente
+            +registrarIncidente(comprador: Comprador, descripcion: String) Incidente
+        }
+    }
+
+    Usuario <|-- Comprador
+    Usuario <|-- Organizador
+
+    %% Relaciones entre Paquetes/Módulos
     Organizador "1" --> "0..*" Reserva : realiza
     Comprador "1" --> "0..*" Incidente : reporta
     
@@ -375,17 +315,15 @@ classDiagram
     Evento "1" --> "1" IPoliticaCompra : tiene
     IBoleto "0..*" --> "1" Evento : pertenece a
     
-    %% Relaciones con los Gestores / Servicios principales
     GestorReservas o-- EstrategiaPago : utiliza estrategia activa
-    GestorReservas ..> CreadorBoleto : solicita emisión de boletos
-    GestorReservas ..> IPoliticaCompra : valida restricciones de compra
-    GestorReservas ..> GestorNotificaciones : delega notificaciones de compra
+    GestorReservas ..> CreadorBoleto : solicita emision
+    GestorReservas ..> IPoliticaCompra : valida con
+    GestorReservas ..> GestorNotificaciones : delega notif.
     
     GestorEventos ..> EstrategiaPago : revierte pagos
-    GestorEventos ..> GestorNotificaciones : delega notificaciones de eventos
+    GestorEventos ..> GestorNotificaciones : delega notif.
+    GestorNotificaciones ..> ICanal : usa
     
-    GestorNotificaciones ..> ICanal : usa para envío
-    
-    GestorIncidentes o-- ManejadorIncidente : inicia cadena de soporte
-    
+    GestorIncidentes o-- ManejadorIncidente : inicia cadena
+    ManejadorIncidente ..> Incidente : maneja
     NotificacionMensaje "1" --> "1" Usuario : dirigida a
