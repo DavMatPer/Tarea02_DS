@@ -20,26 +20,66 @@ import java.util.Map;
 public class TicketBeatDisenoSoftwareG6 {
 
     public static void main(String[] args) {
-        System.out.println("--INICIANDO SISTEMA TICKETBEAT---\n");
+        System.out.println("=================================================");
+        System.out.println("       INICIANDO SISTEMA TICKETBEAT - GRUPO 6");
+        System.out.println("=================================================\n");
 
         // Datos globales
         Comprador comprador = new Comprador();
         comprador.setNombre("Juan Perez");
         comprador.setCanalPreferido(new CanalEmail());
+        comprador.setEdad(25);
+        comprador.setEsSocio(true);
 
         GestorNotificaciones gestorNotif = new GestorNotificaciones();
         Evento concierto = new Evento();
 
 
-        // SIMULACION CASO DE USO 1: COMPRAR Y RESERVAR ENTRADAS CON STRATEGY
-        System.out.println("--- EJECUTANDO UC-01: COMPRAR Y RESERVAR ENTRADAS (CON REFACTORIZACIÓN) ---");
+        // =================================================================
+        // PRUEBA PATRON 1 - FACTORY METHOD: Creación de Boletos
+        // =================================================================
+        System.out.println("=== PRUEBA FACTORY METHOD: CREACIÓN DE BOLETOS ===\n");
+
+        // Se crean los creadores concretos (sin depender de las clases concretas de boleto)
+        CreadorBoleto creadorVIP = new CreadorBoletoVIP();
+        CreadorBoleto creadorGeneral = new CreadorBoletoGeneral();
+        CreadorBoleto creadorReservado = new CreadorBoletoReservado();
+
+        // Cada creador emite su boleto y muestra detalles usando procesarEmision()
+        System.out.println(">> Emitiendo Boleto VIP:");
+        creadorVIP.procesarEmision();
+
+        System.out.println("\n>> Emitiendo Boleto General:");
+        creadorGeneral.procesarEmision();
+
+        System.out.println("\n>> Emitiendo Boleto Reservado:");
+        creadorReservado.procesarEmision();
+
+        // Verificación: crear boletos via Factory y confirmar tipos
+        System.out.println("\n>> Verificación de instancias creadas via Factory Method:");
+        IBoleto boletoVip = creadorVIP.crearBoleto();
+        IBoleto boletoGen = creadorGeneral.crearBoleto();
+        IBoleto boletoRes = creadorReservado.crearBoleto();
+
+        System.out.println("Boleto VIP -> Precio: $" + boletoVip.getPrecio() + " | Estado: " + boletoVip.getEstado());
+        System.out.println("Boleto General -> Precio: $" + boletoGen.getPrecio() + " | Estado: " + boletoGen.getEstado());
+        System.out.println("Boleto Reservado -> Precio: $" + boletoRes.getPrecio() + " | Estado: " + boletoRes.getEstado());
+
+        System.out.println("\n=================================================\n");
+
+
+        // =================================================================
+        // PRUEBA PATRON 2 - STRATEGY: Procesamiento de Pagos
+        // =================================================================
+        System.out.println("=== PRUEBA STRATEGY: PROCESAMIENTO DE PAGOS ===\n");
         GestorReservas gestorReservas = new GestorReservas();
 
         gestorReservas.buscarEventos();
         gestorReservas.seleccionarEvento();
         gestorReservas.elegirCantidadYTipoDeEntrada();
 
-        System.out.println("\nComprador selecciona método de pago: Tarjeta de Crédito");
+        // Pago con Tarjeta
+        System.out.println("\n>> Comprador selecciona: Tarjeta de Crédito (VISA)");
         EstrategiaPago tarjetaStrategy = new PagoTarjetaStrategy("VISA");
         gestorReservas.setEstrategiaPago(tarjetaStrategy);
 
@@ -48,52 +88,104 @@ public class TicketBeatDisenoSoftwareG6 {
         datosTarjeta.put("cvv", "123");
         gestorReservas.confirmarCompra(150.50, datosTarjeta);
 
-        System.out.println("\nComprador cambia de opinión y selecciona: Pago Móvil");
+        // Cambio dinámico de estrategia a Pago Móvil
+        System.out.println("\n>> Comprador cambia estrategia en tiempo de ejecución: Pago Móvil");
         EstrategiaPago movilStrategy = new PagoMovilStrategy("PagoFlash");
         gestorReservas.setEstrategiaPago(movilStrategy);
 
         Map<String, String> datosMovil = new HashMap<>();
         datosMovil.put("numeroTelefono", "0412-1234567");
-        gestorReservas.confirmarCompra(150.50, datosMovil);
-        System.out.println("\n-------------------------------------------------\n");
+        gestorReservas.confirmarCompra(200.00, datosMovil);
+
+        // Cambio dinámico a Transferencia
+        System.out.println("\n>> Comprador cambia estrategia otra vez: Transferencia Bancaria");
+        EstrategiaPago transferenciaStrategy = new PagoTransferenciaStrategy("Banco Nacional");
+        gestorReservas.setEstrategiaPago(transferenciaStrategy);
+
+        Map<String, String> datosTransferencia = new HashMap<>();
+        datosTransferencia.put("cuentaOrigen", "0102-1234-5678");
+        gestorReservas.confirmarCompra(300.00, datosTransferencia);
+
+        System.out.println("\n=================================================\n");
 
 
+        // =================================================================
+        // PRUEBA PATRON 3 - DECORATOR: Políticas y Restricciones
+        // =================================================================
+        System.out.println("=== PRUEBA DECORATOR: POLÍTICAS Y RESTRICCIONES ===\n");
 
-        // SIMULACION CASO DE USO 2: NOTIFICAR A COMPRADORES
-        System.out.println("--- EJECUTANDO UC-02: NOTIFICACION MASIVA ---");
-        List<Comprador> afectados = new ArrayList<>();
-        afectados.add(comprador);
+        // Construir política con múltiples decoradores envueltos
+        IPoliticaCompra politicaDecorada = new VerificacionEdadDecorator(
+            new LimiteBoletosDecorator(
+                new PoliticaEventoBase(), 4
+            ), 18
+        );
 
-        System.out.println("Organizador inicia proceso de notificacion por cambio de horario...");
-        gestorNotif.iniciarProcesoDeNotificacion(afectados, "El evento se ha retrasado 1 hora.");
-        System.out.println("\n-------------------------------------------------\n");
+        // Asignar la política decorada al evento
+        concierto.setPolitica(politicaDecorada);
+
+        // Prueba 1: Compra VÁLIDA (edad 25, cantidad 3)
+        System.out.println(">> Prueba 1: Comprador de 25 años quiere 3 boletos (límite: 4, edad mín: 18)");
+        boolean resultado1 = concierto.getPolitica().validarCompra(comprador, 3);
+        System.out.println("Resultado: " + (resultado1 ? "APROBADA" : "RECHAZADA") + "\n");
+
+        // Prueba 2: Compra INVÁLIDA por cantidad (edad 25, cantidad 6)
+        System.out.println(">> Prueba 2: Comprador de 25 años quiere 6 boletos (límite: 4)");
+        boolean resultado2 = concierto.getPolitica().validarCompra(comprador, 6);
+        System.out.println("Resultado: " + (resultado2 ? "APROBADA" : "RECHAZADA") + "\n");
+
+        // Prueba 3: Compra INVÁLIDA por edad (menor de 18)
+        Comprador compradorMenor = new Comprador();
+        compradorMenor.setNombre("Pedro Menor");
+        compradorMenor.setEdad(15);
+        System.out.println(">> Prueba 3: Comprador de 15 años quiere 2 boletos (edad mín: 18)");
+        boolean resultado3 = concierto.getPolitica().validarCompra(compradorMenor, 2);
+        System.out.println("Resultado: " + (resultado3 ? "APROBADA" : "RECHAZADA") + "\n");
+
+        // Prueba 4: Agregar decorador de membresía
+        System.out.println(">> Prueba 4: Agregar restricción de membresía");
+        IPoliticaCompra politicaConMembresia = new RestriccionSocioDecorator(
+            new VerificacionEdadDecorator(
+                new LimiteBoletosDecorator(
+                    new PoliticaEventoBase(), 4
+                ), 18
+            ), true
+        );
+
+        Comprador compradorNoSocio = new Comprador();
+        compradorNoSocio.setNombre("Carlos NoSocio");
+        compradorNoSocio.setEdad(30);
+        compradorNoSocio.setEsSocio(false);
+        System.out.println("Comprador NO socio, 30 años, 2 boletos:");
+        boolean resultado4 = politicaConMembresia.validarCompra(compradorNoSocio, 2);
+        System.out.println("Resultado: " + (resultado4 ? "APROBADA" : "RECHAZADA") + "\n");
+
+        System.out.println("Comprador SÍ socio, 25 años, 2 boletos:");
+        boolean resultado5 = politicaConMembresia.validarCompra(comprador, 2);
+        System.out.println("Resultado: " + (resultado5 ? "APROBADA" : "RECHAZADA"));
+
+        System.out.println("\n=================================================\n");
 
 
-
-        // SIMULACION CASO DE USO 3: CANCELACION DE EVENTO
-        System.out.println("--- EJECUTANDO UC-03: CANCELACION DE EVENTO ---");
-        GestorEventos gestorEventos = new GestorEventos();
-        PoliticaEvento politica = new PoliticaEvento();
-
-        System.out.println("Organizador solicita resumen del evento...");
-        gestorEventos.solicitarResumenEvento("EVT-001", concierto);
-
-        System.out.println("Organizador confirma la cancelacion...");
-        gestorEventos.confirmarCancelacion("Fuerza mayor (Clima)", concierto, politica, gestorNotif);
-        System.out.println("\n-------------------------------------------------\n");
-
-
-
-        // SIMULACION CASO DE USO 4: GESTION DE INCIDENTES
-        System.out.println("--- EJECUTANDO UC-04: GESTION DE INCIDENTES ---");
-        AgenteSoporte agente = new AgenteSoporte();
-        AdminEvento admin = new AdminEvento();
+        // =================================================================
+        // PRUEBA PATRON 4 - CHAIN OF RESPONSIBILITY: Gestión de Incidentes
+        // =================================================================
+        System.out.println("=== PRUEBA CHAIN OF RESPONSIBILITY: GESTIÓN DE INCIDENTES ===\n");
         GestorIncidentes gestorIncidentes = new GestorIncidentes();
 
-        System.out.println("Comprador reporta un problema con su boleto...");
-        gestorIncidentes.reportarIncidente("El codigo QR del boleto no carga en la app", agente, admin, comprador, gestorNotif);
+        // Incidente simple: resuelto en primer nivel por AgenteSoporte
+        System.out.println(">> Incidente 1 (Simple): Resuelto en primer nivel");
+        gestorIncidentes.registrarIncidente("El código QR del boleto no carga en la app");
 
-        System.out.println("\n---FIN DE LA SIMULACION---\n"
-                + "GRUPO 6");
+        System.out.println();
+
+        // Incidente complejo: escala automáticamente a DepartamentoAdministracion
+        System.out.println(">> Incidente 2 (Complejo): Escala automáticamente al siguiente nivel");
+        gestorIncidentes.registrarIncidente("Problema complejo con doble cobro y reembolso pendiente");
+
+
+        System.out.println("\n=================================================");
+        System.out.println("          FIN DE LA SIMULACIÓN - GRUPO 6");
+        System.out.println("=================================================");
     }
 }
