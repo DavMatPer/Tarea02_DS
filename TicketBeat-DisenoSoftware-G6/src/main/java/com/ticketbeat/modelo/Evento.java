@@ -8,13 +8,23 @@ package com.ticketbeat.modelo;
  *
  * @author Rafael Cosmo
  */
+import com.ticketbeat.interfaces.IBoleto;
+import com.ticketbeat.interfaces.IPoliticaCompra;
+import java.util.List;
+import java.util.ArrayList;
+
 public class Evento {
     private String id;
     private String nombre;
     private String estado;
     private int boletosVendidos;
     private double montoRecaudado;
+    private List<IBoleto> boletos;
+    private IPoliticaCompra politica;
 
+    public Evento() {
+        this.boletos = new ArrayList<>();
+    }
 
     public int getBoletosVendidos() { 
         return boletosVendidos; 
@@ -28,4 +38,10 @@ public class Evento {
         this.estado = estado; 
         System.out.println("El estado del evento ha cambiado a: " + estado);
     }
+
+    public List<IBoleto> getBoletos() { return boletos; }
+    public void agregarBoleto(IBoleto boleto) { this.boletos.add(boleto); }
+
+    public IPoliticaCompra getPolitica() { return politica; }
+    public void setPolitica(IPoliticaCompra politica) { this.politica = politica; }
 }

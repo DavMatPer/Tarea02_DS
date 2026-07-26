@@ -1,7 +1,7 @@
 package com.ticketbeat.gestores;
 
 import com.ticketbeat.interfaces.ICanal;
-import com.ticketbeat.modelo.Boleto;
+import com.ticketbeat.interfaces.IBoleto;
 import com.ticketbeat.modelo.Comprador;
 import java.util.List;
 
@@ -42,7 +42,7 @@ public class GestorNotificaciones {
     }
 
     // Métodos de apoyo llamados desde GestorEventos y GestorIncidentes
-    public void notificarCompradores(List<Boleto> afectados, String mensaje) {
+    public void notificarCompradores(List<IBoleto> afectados, String mensaje) {
         System.out.println("Enviando notificación masiva: " + mensaje);
     }
 

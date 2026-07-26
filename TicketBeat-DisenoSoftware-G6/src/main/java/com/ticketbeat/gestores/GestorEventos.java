@@ -1,8 +1,8 @@
 package com.ticketbeat.gestores;
 
+import com.ticketbeat.interfaces.IBoleto;
 import com.ticketbeat.modelo.Evento;
 import com.ticketbeat.modelo.PoliticaEvento;
-import com.ticketbeat.modelo.Boleto;
 import java.util.List;
 
 public class GestorEventos {
@@ -18,7 +18,7 @@ public class GestorEventos {
         evento.setEstado("CANCELADO");
         
         // 2. Aplica la política
-        List<Boleto> listaBoletosAfectados = politica.aplicarPoliticaDevolucion(evento);
+        List<IBoleto> listaBoletosAfectados = politica.aplicarPoliticaDevolucion(evento);
         
         // 3. Notifica a los compradores
         notificador.notificarCompradores(listaBoletosAfectados, "Evento cancelado: " + motivo);
