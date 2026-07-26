@@ -1,30 +1,39 @@
 /*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ * Manejador Concreto - Patrón Chain of Responsibility
  */
 package com.ticketbeat.modelo;
 
 /**
+ * Primer eslabón de la cadena. Intenta resolver el incidente
+ * en primer nivel; si no puede, lo pasa al siguiente manejador.
  *
  * @author Rafael Cosmo
  */
-import com.ticketbeat.interfaces.IResolvedor;
+public class AgenteSoporte extends ManejadorIncidente {
+    private String idAgente;
 
-public class AgenteSoporte extends Usuario implements IResolvedor {
-    
-    @Override
-    public boolean resolver(Incidente incidente) {
-        return aplicarAccionPrimerNivel();
+    public AgenteSoporte() {
+        this.idAgente = "AGT-001";
+    }
+
+    public boolean puedeResolver(Incidente incidente) {
+        // Un agente puede resolver incidentes simples (ej. sin la palabra "complejo")
+        String desc = incidente.getDescripcion();
+        return desc != null && !desc.toLowerCase().contains("complejo");
     }
 
     @Override
-    public boolean escalar(Incidente incidente) {
-        return true; 
-    }
-
-    public boolean aplicarAccionPrimerNivel() {
-        System.out.println("Agente de Soporte: Intentando resolver en primer nivel...");
-        
-        return false; 
+    public void manejarIncidente(Incidente incidente) {
+        if (puedeResolver(incidente)) {
+            System.out.println("[AgenteSoporte " + idAgente + "] Incidente resuelto en primer nivel: " 
+                + incidente.getDescripcion());
+        } else {
+            System.out.println("[AgenteSoporte " + idAgente + "] No puede resolver. Escalando al siguiente nivel...");
+            if (this.siguienteManejador != null) {
+                this.siguienteManejador.manejarIncidente(incidente);
+            } else {
+                System.out.println("[AgenteSoporte] No hay más manejadores en la cadena.");
+            }
+        }
     }
 }
