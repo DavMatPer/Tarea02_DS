@@ -8,13 +8,14 @@ package com.ticketbeat.modelo;
  *
  * @author Rafael Cosmo
  */
+import com.ticketbeat.interfaces.IBoleto;
 import java.util.Date;
 import java.util.List;
 
 public class Reserva {
     private String id;
     private Comprador comprador;
-    private List<Boleto> boletosReservados;
+    private List<IBoleto> boletosReservados;
     private Date fechaExpiracion;
 
     public Comprador getComprador() { return comprador; }
